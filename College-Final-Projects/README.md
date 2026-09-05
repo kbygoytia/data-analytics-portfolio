@@ -8,8 +8,7 @@ published writeup.
 ---
 
 ## In-Context Learning for LLMs — Senior Data Science Capstone
-**Sponsor:** 99P Labs (Honda Research Institute) · **Team:** 5 · Jan–May 2026
-**Repo:** https://github.com/sds-capstone/honda-s26 ·
+**Sponsor:** 99P Labs (Honda Research Institute) · **Team:** 6 · Jan–May 2026
 **Published writeup:** https://medium.com/99p-labs/in-context-learning-for-llms-cd2051416904
 
 **Research question:** How do large language models learn from context
