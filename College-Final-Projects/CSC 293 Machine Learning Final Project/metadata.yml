@@ -1,0 +1,20 @@
+---
+:id: 330167162
+:submitters:
+- :name: Vanessa Pliego
+  :email: vpliego@smith.edu
+- :name: Ari Cross
+  :email: across@smith.edu
+- :name: Debora Camacho
+  :email: dcamacho@smith.edu
+- :name: Nicole Sanchez Flores
+  :email: nsanchezflores@smith.edu
+- :name: Kimberly By Goytia
+  :email: kbygoytia@smith.edu
+:created_at: !ruby/object:ActiveSupport::TimeWithZone
+  utc: 2025-05-01 02:28:15.611247000 Z
+  zone: !ruby/object:ActiveSupport::TimeZone
+    name: America/Los_Angeles
+  time: 2025-04-30 19:28:15.611247000 Z
+:status: processed
+:score: 2.0

@@ -1,0 +1,471 @@
+---
+title: "Final Project"
+format: html
+author: Nicole Sanchez Flores, Vanessa Pliego, Debora Camacho, Kimberly By Goytia, Ari Cross
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+---
+
+### Exploratory Data Analysis
+
+First we can run some exploratory data analysis
+
+```{r}
+library(readr)
+library(tidyverse)
+library(janitor)
+library(pheatmap)
+library(corrplot)
+library(ggplot2)
+music_dataset <- read_csv("music_dataset.csv")
+#ggplot(aes)
+```
+
+```{r, echo=FALSE}
+# Cleaning up the dataset names 
+tidy_music_data <- clean_names(music_dataset)
+
+# Viewing the data
+#View(tidy_music_data)
+```
+
+```{r, echo=FALSE}
+# Percentage + sum that each artist takes up the data
+artist_sum <- tidy_music_data %>%
+  group_by(artist) %>%
+  summarise(n = n()) %>%
+  mutate(percent = (n / 4850)*100) %>%
+  arrange(desc(n))
+
+# bar graph of the artiists + sum amount
+ggplot(artist_sum, aes(x = reorder(artist, n), y = n)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  labs(title = "All Artists by Count", x = "Artist", y = "Count")
+```
+
+Above in \[ADD FIGURE\] displays the artists list along with their track amount in the data set. We can see the top 5 artists are jay Zenith, Bass Surge, Horizon Flow, Celestial Harmony and Luna Nova. The bottom 5 artists are Samantha Lee, Aurora Soundwave ElectroPulse, Urban Rhapsody, and Retro Resonance. All artists has at leats 215 tracks and up.
+
+```{r}
+# Top 5 Artists
+top_5 <- tidy_music_data %>%
+  group_by(artist) %>%
+  summarise(n = n()) %>%
+  arrange(desc(n)) %>%
+  slice(1:5) 
+
+# Bottom 5 
+bottom_5 <- tidy_music_data %>%
+  group_by(artist) %>%
+  summarise(n = n()) %>%
+  arrange(desc(n)) %>%
+  slice(16:20) 
+
+ranks <- top_5 %>%
+  full_join(bottom_5)  %>%
+  arrange(desc(n))
+
+ggplot(ranks, aes(x = artist, y = n)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Top & Bottom 5 Artists", x = "Artist", y = "Count")
+```
+
+#Variables
+
+#Maybe create a map of all the variables to see if any are correlated with each other then look closer at pais of varibles
+
+```{r}
+predictor_variables <-
+  select(tidy_music_data, -c("song","artist", "streams", "daily_streams", "genre", "release_year"))
+  
+```
+
+#heatmap
+
+```{r}
+View(predictor_variables)
+pheatmap(predictor_variables, scale = "none")
+
+```
+
+```{r}
+cor_matrix <- cor(predictor_variables)
+View(cor_matrix)
+```
+
+```{r}
+pheatmap(cor_matrix, scale = "none")
+```
+
+```{r}
+corrplot(cor_matrix,method="pie")
+```
+
+```{r}
+corrplot(cor_matrix,method="shade")
+
+```
+
+```{r}
+high_correlations <- cor_matrix[abs(cor_matrix) > 0.5]
+View(high)
+```
+
+```{r}
+cor_matrix <- cor(predictor_variables, use = "complete.obs")
+corrplot(cor_matrix, method = "color")
+```
+
+Our variables seem to not have any correlations with each other \# Danceability + Energy
+
+Since these two variables might be simlar, we might want to first investigate these variables to capture any multicolinnarity. These vairables seem to be numeric and continuos,
+
+## Part II: Describe the Data
+
+**Data Set:** Billboard Top Songs
+
+-   Filename: music_dataset.csv
+
+**Date:**
+
+-   The data set is being actively updated as of March 19, 2025.
+
+**Summary:**
+
+Our data was obtained from the Kaggle data set called "Billboard Top Songs" by Samay Ashar. This data set contains 5,000 song observations which were generated from both Spotify charts and artificially written musciality descriptions. The author of this data generated the observed song information to determine what factors can influence a song's weekly Billboard ranking or TikTok virality. To help in answering these questions the data includes 13 variables such as song, artist, streams, daily streams, genre, release year, peak position, weeks on chart, lyrics sentiment, tiktok virality, danceability, acousticness, and energy.
+
+```{r}
+glimpse(tidy_music_data)
+```
+
+**Further Description of Variables:**
+
+1.  **song**: character data - the title of the song.
+2.  **artist**: character data - the name of the associated artist.
+3.  **streams**: discrete numerical - total number of streams a song has across all platforms.
+4.  **daily_streams**: discrete numerical - the average number of streams the song receives daily.
+5.  **genre**: character - the song's genre.
+6.  **release_year**: discrete numerical - the year the song was released.
+7.  **peak_position**: discrete numerical - highest billboard or spotify chart position.
+8.  **weeks_on_chart**: discrete numerical - total weeks on the chart.
+9.  **lyrics_sentiment**: continuous numerical - sentiment analysis of lyrics from -1 to +1.
+10. **tik_tok_virality**: discrete numerical - popularity score of a song from 0 to 100.
+11. **danceability**: discrete numerical - how danceable the song is from 0 to 1.
+12. **acousticness**: discrete numerical - level of acoustics used from 0 to 1.
+13. **energy**: discrete numerical - level of energy of song from 0 to 1.
+
+# Unsupervised Models
+
+## Hierarchical clustering
+
+```{r}
+# selecting columns of interest and converting to matrix
+music_data <- tidy_music_data |>
+  select(streams, daily_streams, genre, peak_position, weeks_on_chart,
+         lyrics_sentiment, tik_tok_virality, danceability, acousticness, energy)
+
+music_data$genre <- as.factor(music_data$genre)
+
+# one-hot encoding genre since it is categorical column
+genre_dummies <- model.matrix(~ genre - 1, data = music_data)
+music_data <- music_data |>
+  select(-genre) |>
+  bind_cols(as.data.frame(genre_dummies))
+
+# removing missing values
+music_data <- na.omit(music_data)
+# standardizing features
+music_data <- scale(music_data)
+# tranposing for feature clustering
+music_data <- dist(t(music_data)) 
+# hierarchichal clustering --> complete
+hc <- hclust(music_data, method = "complete")
+
+
+```
+
+```{r}
+plot(hc, main = "Hierarchical Clustering", xlab = "", sub = "", ylab = "Distance")
+rect.hclust(hc, k = 4, border = "red")  
+
+```
+
+Findings: - from this plot, we find that genreHouse, genreEDM, and genreR&B cluster tightly with danceability which suggests that these genres are possibly ones that are found to be more danceable. - We also find that acousticness is close to genreJazz and genreSynthwave which makes sense since they are less upbeat/electronic sounds. - Surprisingly, we also see that genreTechno and genreCountry are near lyrics_sentiment which could be further investigated. - More importantly, we are finding that streams, genrepop, and peak position cluster which can be a suggestion that popular songs with high streams and peak positions are usually pop songs. This is pretty safe to assume since pop is a very popular genre, and this could be worth further exploring within a model to see if a song being pop influences a song to do better on charts. - another important finding is that weeks on chart and energy cluster which also makes sense since higher energy songs might stay on the charts longer over less energetic songs.
+
+## Kmeans Processing
+
+```{r}
+library(tidyverse)
+library(factoextra)
+
+billboard <- music_dataset 
+tidy_billboard <- clean_names(billboard)
+
+# Kmeans work for nuermic values, so you pick the numeric values. 
+# Unsupervised, so I did not add peak.poistion
+
+billboard_numeric <- tidy_billboard %>%
+  select(streams, daily_streams, weeks_on_chart,
+         lyrics_sentiment, tik_tok_virality,
+         danceability, acousticness, energy)
+
+# Remove any missing values
+billboard_numeric <- na.omit(billboard_numeric)
+
+# Scale numeric features
+billboard_scaled <- scale(billboard_numeric)
+
+```
+
+```{r}
+fviz_nbclust(billboard_scaled, kmeans, method = "silhouette")
+
+#Determines the ideal amount of clusters we should create for the kmeans algorithm. The result is 2 
+```
+
+```{r}
+set.seed(3)
+
+km_result <- kmeans(billboard_scaled, centers = 2, nstart = 25)
+
+#Center = the number of clusters made by the user
+#nsstart = 25 random starts to find the best clustering solution 
+```
+
+```{r}
+fviz_cluster(km_result, data = billboard_scaled,
+             ellipse.type = "convex",
+             geom = "point",
+             palette = "jco",
+             ggtheme = theme_minimal())
+
+#Shows the clusters that we created.
+```
+
+```{r}
+clusters <- kmeans(billboard_scaled, centers = 2, nstart = 25)
+
+tidy_billboard <- tidy_billboard |> mutate(cluster = clusters$cluster)
+tidy_billboard |> ggplot(aes(x = daily_streams, y = tik_tok_virality, col = as.factor(cluster))) + geom_point()
+```
+
+### Additional kmeans exploration:
+
+```{r}
+billboard_clustered <- tidy_music_data %>%
+  filter(complete.cases(streams, daily_streams, weeks_on_chart,
+                        lyrics_sentiment, tik_tok_virality,
+                        danceability, acousticness, energy)) %>%
+  mutate(cluster = factor(km_result$cluster))
+
+```
+
+```{r}
+billboard_clustered %>%
+  group_by(cluster) %>%
+  summarise(across(where(is.numeric), mean, na.rm = TRUE),
+            n = n())
+
+#Shows the center of each cluster.
+```
+
+**Explanation:**
+
+This showed that there is no relationship associated with the variables so the kmeans does not work. It can also have to do with the fact that when clustering there is a lot of overlap between the most optimal cluster amount of 2. Additionally, in the above table, the means are closely similar to each other for each cluster. This might cause issues with create distinct clusters.
+
+### Supervised Learning Models
+
+# We can make it into classificition, are they in top 10 or not
+
+```{r}
+tidy_music_data <- tidy_music_data %>%
+  mutate(top10 = ifelse(peak_position <= 10, 1, 0)) %>%
+  mutate(top10 = as.factor(top10))  # make it a factor for classification
+
+```
+
+# Random Forest
+
+We're taking these out because these are not really important to our model also, peak_position will be highly correlated wit
+
+```{r}
+tidy_music_data <- tidy_music_data[,!names(tidy_music_data) %in% c("song", "artist", "peak_position", "daily_streams")]
+```
+
+In this code chunk, we will use Random Forest. We are sepearating our data into a training and testing set. We will use a 80/20 split because we have a relatively big dataset with 4850 rows.
+
+```{r}
+library(randomForest)
+set.seed(100)
+samp <- sample(nrow(tidy_music_data), .80 * nrow(tidy_music_data))
+
+train <- tidy_music_data[samp, ]
+
+test <- tidy_music_data[-samp, ]
+
+#we check the dims
+
+dim(test)
+dim(train)
+```
+
+Now we are going to make our model, this chunk means to make a random forest model
+
+```{r}
+
+model <- randomForest(top10 ~ ., data = train, ntree = 1000, mtry = 5)
+
+model
+```
+
+In this step we make our confusion matrix this hows how well the model performed on the training set. It also elps identify how often it's correctly/incorrectly classifying songs as top 10 or not.
+
+```{r}
+model$confusion
+```
+
+Now we use our model on the testing data set, so we can test how it well it generalizes to "new" data.
+
+```{r}
+prediction <- predict(model, newdata = test)
+
+table(prediction, test$top10)
+
+prediction
+```
+
+Here we see how the model did on the testing data, we see for accurate predictions over inaccurate predictions.
+
+```{r}
+results<-cbind(prediction,test$top10)
+
+results
+
+colnames(results)<-c('pred','real')
+
+results<-as.data.frame(results)
+
+
+# Finally, let’s calculate the accuracy of the model
+
+sum(prediction==test$top10) / nrow(test) # The output is as shown below
+```
+
+It seems that we have aorund .91% accuracy with this model we can extract the variables that may lead to this high accuracy. We can see which variables using the importance() function as well as using the varImpPlot. The varImpPlot
+
+```{r}
+# Get variable importance
+importance(model)
+
+varImpPlot(model)
+
+```
+
+We can see that in this plot different variables carry different importance. On the x-axis we have MeanDecreaseGini which shows how much each variable improves the purity of the decision trees in the forest. Higher values of MeanDecreaseGini indicates greater importance because For each variable, we track how much it helps reduce impurity on average across all the trees in the forest.The more a variable helps split the data into purer groups, the higher its MeanDecreaseGini.
+
+```{r}
+imp <- importance(model)
+top_features <- rownames(imp)[order(imp[, "MeanDecreaseGini"], decreasing = TRUE)[1:5]]
+top_features
+
+```
+
+```{r}
+library(randomForest)
+library(ggplot2)
+
+imp <- importance(model)
+imp_df <- data.frame(
+  Variable = rownames(imp),
+  MeanDecreaseGini = imp[, "MeanDecreaseGini"]
+)
+
+# Sort by importance
+imp_df <- imp_df[order(imp_df$MeanDecreaseGini), ]
+
+ggplot(imp_df, aes(x = MeanDecreaseGini, y = reorder(Variable, MeanDecreaseGini))) +
+  geom_point(color = "steelblue", size = 3) +
+  labs(title = "Variable Importance",
+       x = "Mean Decrease Gini",
+       y = "Variable") +
+  scale_x_continuous(breaks = seq(0, max(imp_df$MeanDecreaseGini), by = 5)) +  # Tick every 5
+  theme_minimal()
+
+```
+
+From the plot and from what is shown above, we can see that streams is by far the most important variable, since it has a MeanDecreaseGini of 95.Then we have lyric_sentiment being the next most important variable, since it has a MeanDecreaseGini of around 82%. Danceability and the number of weeks that the song is on the chart are the next most important variables with about 77 MeanDecreaseGini then. Then tiktok virality is next with about 76% MeanDecreaseGini.
+
+On the other hand, variables like genre and release_year show much lower MeanDecreaseGini values, indicating that they contribute relatively little to the model's ability to classify Top 10 songs accurately.
+
+The model suggests that emotional tone, how danceable a track is, how long it stays on the charts, and its popularity on TikTok all play a significant role in chart success. Overall, the plot helps us identify which features are most valuable in predicting musical success.
+
+Next steps: Maybe look into daily streams/streams? pick one instead of other\
+\# Logistic Regression
+
+```{r}
+library(rsample)
+library(dplyr)
+#create testing and training
+set.seed(100)
+samp <- sample(nrow(tidy_music_data), .80 * nrow(tidy_music_data))
+
+train <- tidy_music_data[samp, ]
+
+test <- tidy_music_data[-samp, ]
+
+# 3. Fit logistic regression on training data
+#model creation
+danceability_log_model <- glm(top10 ~ danceability, data = tidy_music_data, family = "binomial")
+
+acousticness_log_model <- glm(top10 ~ acousticness, data = tidy_music_data, family = "binomial")
+
+energy_log_model <- glm(top10 ~ energy, data = tidy_music_data, family = "binomial")
+
+integrative_model <- glm(top10 ~ energy + danceability + lyrics_sentiment, data = tidy_music_data, family = "binomial")
+#get summaries
+summary(danceability_log_model)
+summary(acousticness_log_model)
+summary(energy_log_model)
+summary(integrative_model)
+#plot the model
+# 4. Predict on test data
+#you may need to uncomment the following two lines if running into 'factor' errors
+#train$top10 <- as.character(train$top10)
+#test$top10 <- as.character(test$top10)
+
+test$predicted_prob <- predict(integrative_model, newdata = test, type = "response")
+test$predicted_class <- ifelse(test$predicted_prob > 0.5, 1, 0)
+
+```
+
+The logistic regressions were not successful in predicting whether or not the a song would make it to the top 10 based on the logistic model that predicts top 10 status as a function of energy, danceability, and lyrics sentiment.
+
+When running the terms of the logistic model, none of them showed statistical significance which would point to the reason why the model wasn't able to accurately predict from training data. \# Gradient Boosting
+
+```{r}
+#build the model
+library(gbm)
+#set seed
+set.seed(123)
+
+gbm_model <- gbm(
+  formula = top10 ~ ., 
+  data = train, 
+  distribution = "bernoulli", 
+  n.trees = 5000, 
+  interaction.depth = 4, 
+  shrinkage = 0.01, 
+  cv.folds = 5
+)
+```
+
+```{r}
+#evaluate the model
+# Make predictions
+predictions <- predict(gbm_model, newdata = test, n.trees = gbm_model$n.trees)
+
+# Calculate RMSE
+rmse <- sqrt(mean((predictions - test$medv)^2))
+print(paste("RMSE:", round(rmse, 2)))
+
+```
