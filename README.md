@@ -8,7 +8,6 @@ Honda-sponsored LLM research capstone, a dozen statistics and machine-learning
 projects in R, and four years of cross-functional, community-facing leadership.
 I care most about work that's both technically rigorous and genuinely useful.
 
-📍 Memphis, TN · open to remote & relocation
 📧 kbygoytia@gmail.com · 🔗 [LinkedIn](https://www.linkedin.com/in/kimberly-by-goytia)
 
 ---
